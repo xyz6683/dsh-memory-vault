@@ -92,6 +92,7 @@ export interface RecallOptions {
   domain?: string
   track?: MemoryTrack
   kind?: MemoryKind
+  branch?: string
   reinforce?: boolean
   now?: number
 }

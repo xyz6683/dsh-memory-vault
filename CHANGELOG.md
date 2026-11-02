@@ -11,6 +11,7 @@ Initial release.
 - Automatic first-step recall via `agent/pre-step` with hard char/token budget, injected as reference data.
 - Tools: `mvault_add`, `mvault_recall`, `mvault_expand`, `mvault_forget`, `mvault_revert`, `mvault_graph`, `mvault_export` (Markdown), `mvault_backup` (JSONL), `mvault_review`.
 - Failure handling: local outbox replay, dead-letter file, fail-open recall.
+- Git-branch scoped recall: project memories tagged with `branches` only surface in matching branches (auto-recall resolves the session's current branch; `mvault_recall` accepts an explicit `branch`).
 
 ### M2 — automatic distillation
 

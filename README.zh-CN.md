@@ -54,6 +54,7 @@ dsh web
 | `maxContextChars` / `maxContextTokens` | `2600` / `1300` | 召回注入的硬预算 |
 | `domains` | 6 个默认领域 | 领域维度（可增删） |
 | `weights` | 六维权重 | 混合排序权重 |
+| 分支作用域 | 自动 | 项目记忆带 `branches` 时只在对应 git 分支召回（自动召回按会话当前分支过滤；`mvault_recall` 可传 `branch`） |
 | `explicitWritesActive` | `true` | 显式写入直接生效 |
 | `halfLifeDays` | `30` | 时间衰减半衰期 |
 

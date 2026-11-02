@@ -721,9 +721,19 @@ export class MemoryVaultStore {
   }
 
   /** Hybrid ranking search over active memories. */
+  /** True when a memory row is visible under the given git-branch context. */
+  private branchAllowed(row: MemoryRow, branch: string | undefined): boolean {
+    if (branch === undefined) return true
+    // Only project-track memories carry branch scopes; a NULL scope means
+    // "all branches". Other tracks are always visible.
+    if (row.track !== 'project' || row.branches === null) return true
+    return parseStringArray(row.branches).includes(branch)
+  }
+
   recall(query: string, options: RecallOptions): RecallResult[] {
     this.assertOpen()
     const now = options.now ?? Date.now()
+    const branch = options.branch
     const candidates = new Map<string, {
       row: MemoryRow
       lexical: number
@@ -747,7 +757,7 @@ export class MemoryVaultStore {
       Math.max(options.limit * 4, 20),
     ) as unknown as Array<MemoryRow & { rank: number }>
     const queryTrigrams = trigrams(query)
-    const ftsRows = rawFtsRows.map(row => {
+    const ftsRows = rawFtsRows.filter(row => this.branchAllowed(row, branch)).map(row => {
       const text = `${row.content} ${parseStringArray(row.tags).join(' ')}`.normalize('NFKC').toLocaleLowerCase('en-US')
       const searchable = trigrams(text)
       const overlap = [...queryTrigrams].filter(value => searchable.has(value)).length
@@ -783,9 +793,10 @@ export class MemoryVaultStore {
           Math.max(options.limit * 4, 20),
         ) as unknown as MemoryRow[]
       : []
+    const branchScopedSubstringRows = substringRows.filter(row => this.branchAllowed(row, branch))
     const lexicalRows = [
       ...ftsRows.map(value => ({ row: value.row, score: value.coverage })),
-      ...substringRows.filter(row => !ftsRows.some(value => value.row.id === row.id)).map(row => ({ row, score: 1 })),
+      ...branchScopedSubstringRows.filter(row => !ftsRows.some(value => value.row.id === row.id)).map(row => ({ row, score: 1 })),
     ]
     lexicalRows.forEach(({ row, score }) => {
       candidates.set(row.id, {
@@ -822,6 +833,7 @@ export class MemoryVaultStore {
         options.kind ?? null, options.kind ?? null,
       ) as unknown as Array<MemoryRow & { entity_id: string }>
       for (const row of linkedRows) {
+        if (!this.branchAllowed(row, branch)) continue
         const distance = walk.distances.get(row.entity_id) ?? options.hops
         const current = candidates.get(row.id) ?? { row, lexical: 0, graph: 0, reasons: new Set<string>() }
         current.graph = Math.max(current.graph, 1 / (distance + 1))

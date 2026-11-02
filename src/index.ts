@@ -12,6 +12,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import { randomUUID } from 'node:crypto'
+import { spawnSync } from 'node:child_process'
 import { mkdirSync, realpathSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import z from '@deepseek-ai/schemastery'
@@ -278,6 +279,18 @@ function detectDomains(query: string, domains: readonly string[], keywords: Read
   return scores
 }
 
+/** Resolve the current git branch of a working directory (best-effort). */
+function currentBranch(cwd: string): string | undefined {
+  try {
+    const result = spawnSync('git', ['-C', cwd, 'branch', '--show-current'], { encoding: 'utf8', timeout: 3000 })
+    if (result.status !== 0) return undefined
+    const branch = (result.stdout ?? '').trim()
+    return branch === '' ? undefined : branch
+  } catch {
+    return undefined
+  }
+}
+
 /** One-shot text generation through the configured LLM route (profile narrative). */
 async function generateText(
   ctx: Context,
@@ -522,6 +535,7 @@ export function apply(ctx: Context, config: Config): void {
       domain: { type: 'string', description: 'Optional domain filter.' },
       track: { type: 'string', description: 'Optional track filter (user, global, project, project-log, daily-log).' },
       kind: { type: 'string', description: 'Optional kind filter.' },
+      branch: { type: 'string', description: 'Optional git branch: only project memories scoped to this branch (or unscoped) are returned.' },
     },
     output: {
       schema: {
@@ -583,6 +597,7 @@ export function apply(ctx: Context, config: Config): void {
         ...(domainFilter === undefined ? {} : { domain: domainFilter }),
         ...(trackFilter === undefined ? {} : { track: trackFilter }),
         ...(kindFilter === undefined ? {} : { kind: kindFilter }),
+        ...(args.branch === undefined ? {} : { branch: nonEmpty(args.branch, 'branch', 120) }),
       }).map((result) => {
         const preview = clipTokens(result.content, config.recallPreviewTokens)
         return { ...result, content: preview.text, contentChars: result.content.length, expandable: preview.truncated }
@@ -1313,6 +1328,8 @@ export function apply(ctx: Context, config: Config): void {
       if (query === undefined) return decision
       try {
         const domainScores = detectDomains(query, config.domains, domainKeywords)
+        const cwd = agent.session?.header?.cwd
+        const branch = cwd === undefined ? undefined : currentBranch(cwd)
         const results = store.recall(query, {
           limit: config.autoRecallLimit,
           hops: config.maxGraphHops,
@@ -1320,6 +1337,7 @@ export function apply(ctx: Context, config: Config): void {
           weights: config.weights,
           domainBoost: config.domainBoost,
           domainScores,
+          ...(branch === undefined ? {} : { branch }),
           reinforce: false,
         }).filter(result => result.score >= config.autoRecallMinScore)
         signal.throwIfAborted()

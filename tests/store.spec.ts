@@ -158,6 +158,31 @@ describe('MemoryVaultStore', () => {
     store.close()
   })
 
+  it('scopes project memories to git branches during recall', () => {
+    const store = new MemoryVaultStore(':memory:')
+    add(store, '主分支的部署端口是 8080。', { track: 'project', domain: 'dev', project: 'p1', branches: ['main'] })
+    add(store, '开发分支的部署端口是 9090。', { track: 'project', domain: 'dev', project: 'p1', branches: ['dev'] })
+    add(store, '项目约定：所有分支统一用 pnpm。', { track: 'project', domain: 'dev', project: 'p1' })
+    const base = { limit: 10, hops: 2, halfLifeDays: 30, weights, domainBoost: 0.1, domainScores: new Map(), now: 1_800_000_000_000 }
+    // On main: only the main-scoped port memory matches (the dev one is hidden).
+    const main = store.recall('部署端口', { ...base, branch: 'main' })
+    assert.equal(main.length, 1)
+    assert.ok(main.some(result => result.content.includes('8080')))
+    // On dev: the dev-scoped memory replaces the main one.
+    const dev = store.recall('部署端口', { ...base, branch: 'dev' })
+    assert.equal(dev.length, 1)
+    assert.ok(dev.some(result => result.content.includes('9090')))
+    // Without a branch context everything is visible.
+    const all = store.recall('部署端口', base)
+    assert.equal(all.length, 2)
+    // Unscoped project memories stay visible on every branch.
+    const unscopedMain = store.recall('pnpm', { ...base, branch: 'main' })
+    const unscopedDev = store.recall('pnpm', { ...base, branch: 'dev' })
+    assert.equal(unscopedMain.length, 1)
+    assert.equal(unscopedDev.length, 1)
+    store.close()
+  })
+
   it('aggregates profile data by domain', () => {
     const store = new MemoryVaultStore(':memory:')
     add(store, '用户偏好简洁回答。', { kind: 'preference', track: 'user', domain: 'general' })
