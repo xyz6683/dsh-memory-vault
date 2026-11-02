@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "rewriteRelativeImportExtensions": true,
+    "jsx": "react-jsx",
+    "skipLibCheck": false,
+    "types": ["node"]
+  },
+  "include": ["src/*.ts", "tests"],
+  "exclude": ["tests/client.spec.ts"]
+}

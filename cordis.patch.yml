@@ -1,0 +1,65 @@
+# dsh-memory-vault bundle patch: inserts the host plugin row into the profile's
+# plugin roster. The browser half rides the package's `dsh.client` manifest
+# (the client registry serves the client bundle), and this row materializes
+# the memory host plugin on boot.
+#
+# Install with `dsh plugin --profile <name> add <path-or-git-url>`; the bundle
+# patch is applied automatically, so do NOT insert this row again in the
+# profile patch (duplicate ids crash the loader).
+- insert:
+    - id: memory-vault
+      name: dsh-memory-vault
+      config:
+        enabled: true
+        path: !!js dshHomePath('dsh-memory-vault.sqlite')
+        backupDirectory: !!js dshHomePath('dsh-memory-vault-backups')
+        outboxDirectory: !!js dshHomePath('dsh-memory-vault-outbox')
+        exportDirectory: !!js dshHomePath('dsh-memory-vault-export')
+
+        # Layered tracks: which tracks the agent may write directly.
+        autoRecall: true
+        autoRecallLimit: 5
+        autoRecallMinScore: 0.18
+        maxContextChars: 2600
+        maxContextTokens: 1300
+        recallPreviewTokens: 220
+        maxQueryChars: 1200
+        halfLifeDays: 30
+        maxGraphHops: 2
+        domainBoost: 0.1
+
+        # Domain dimension (first-class): recall weighting, filtering, and
+        # profile aggregation. Editable in config.
+        domains: [dev, career, workflow, english, investment, general]
+        defaultDomain: general
+
+        # Layered write gates: explicit `vault_add` writes land directly;
+        # automatic turn extraction (M2) lands in the confirmation queue.
+        explicitWritesActive: true
+        autoExtract: false
+        extractMinConfidence: 0.65
+        extractEveryTurns: 1
+        extractMaxInputChars: 16000
+        extractMaxInputTokens: 6000
+        extractMaxOutputTokens: 3200
+        extractTimeoutMs: 60000
+        extractMaxMemories: 8
+        extractConcurrency: 2
+        extractMaxAttempts: 2
+        extractRetryBaseMs: 1000
+        captureToolResults: false
+        toolResultMaxTokens: 500
+        archiveRetentionDays: 30
+
+        # Personal-profile analysis (vault_profile). profileProvider/profileModel
+        # are optional; omitted = reuse the session's model route.
+        profileMaxOutputTokens: 2400
+        profileTimeoutMs: 60000
+
+        weights:
+          lexical: 0.4
+          graph: 0.25
+          importance: 0.2
+          recency: 0.1
+          access: 0.05
+          domain: 0.1
