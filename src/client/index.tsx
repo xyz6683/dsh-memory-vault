@@ -83,8 +83,32 @@ const button: CSSProperties = {
   font: '12px var(--dsw-font-family, ui-sans-serif, system-ui, sans-serif)',
 }
 
-function short(text: string, max: number): string {
-  return text.length <= max ? text : `${text.slice(0, max)}…`
+/** One-line compact title derived from a memory's full content. */
+function titleOf(content: string, max = 36): string {
+  const line = content.replace(/\s+/g, ' ').trim()
+  return line.length <= max ? line : `${line.slice(0, max)}…`
+}
+
+/** One memory row: compact title + collapsible details. */
+function MemoryRow(props: { memory: SnapshotMemory; onForget: (id: string) => void }) {
+  const { memory, onForget } = props
+  const [expanded, setExpanded] = useState(false)
+  return <article style={{ padding: 8, borderRadius: 8, background: 'color-mix(in srgb, currentColor 6%, transparent)' }}>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
+      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={memory.content}>
+        {titleOf(memory.content)}
+      </span>
+      <span style={{ opacity: 0.55, fontSize: 11, flex: 'none' }}>{memory.kind} · {memory.domain}</span>
+      <button type="button" style={button} onClick={() => setExpanded(value => !value)}>{expanded ? '收起' : '详情'}</button>
+      <button type="button" style={button} onClick={() => onForget(memory.id)}>删除</button>
+    </div>
+    {expanded && <>
+      <div style={{ marginTop: 6, overflowWrap: 'anywhere', opacity: 0.88, whiteSpace: 'pre-wrap' }}>{memory.content}</div>
+      <small style={{ display: 'block', opacity: 0.55, marginTop: 4 }}>
+        {memory.track} · 重要度 {memory.importance}{memory.tags.length > 0 ? ` · ${memory.tags.join(' ')}` : ''} · {new Date(memory.createdAt).toLocaleDateString()}
+      </small>
+    </>}
+  </article>
 }
 
 async function readSnapshot(query = '', domain = ''): Promise<VaultSnapshot> {
@@ -204,13 +228,7 @@ function MemoriesTab(props: {
       </small>
     </section>
     <section style={{ ...card, padding: 10, marginTop: 8, display: 'grid', gap: 6 }}>
-      {memories.map(memory => <article key={memory.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: 8, borderRadius: 8, background: 'color-mix(in srgb, currentColor 6%, transparent)' }}>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ overflowWrap: 'anywhere' }}>{short(memory.content, 400)}</span>
-          <small style={{ display: 'block', opacity: 0.55 }}>{memory.kind} · {memory.track} · {memory.domain} · {memory.tags.join(' ')}</small>
-        </span>
-        <button type="button" style={button} onClick={() => { void act({ action: 'forget-memory', memoryId: memory.id }) }}>删除</button>
-      </article>)}
+      {memories.map(memory => <MemoryRow key={memory.id} memory={memory} onForget={id => { void act({ action: 'forget-memory', memoryId: id }) }} />)}
       {memories.length === 0 && <div style={{ padding: 18, textAlign: 'center', opacity: 0.62 }}>还没有匹配的记忆。对 AI 说「记一下：…」即可沉淀。</div>}
     </section>
   </>

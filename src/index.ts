@@ -521,7 +521,7 @@ export function apply(ctx: Context, config: Config): void {
         now: Date.now(),
       })
     },
-    presentCall: args => ({ card: 'generic', title: 'Vault add', kind: 'other', rawInput: args.content }),
+    presentCall: args => ({ card: 'generic', title: 'Vault add', kind: 'other', rawInput: args.content.length > 80 ? `${args.content.slice(0, 80)}…` : args.content }),
   }))
 
   // mvault_recall — manual hybrid retrieval.
