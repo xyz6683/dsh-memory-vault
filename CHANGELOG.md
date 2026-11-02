@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- 全面重写 README（中英双语）：新增「Agent 速成手册」章节（17 工具速查 + 触发语义 + 六条纪律），面向代理用户的快速上手。
+
 ## 0.1.0 (unreleased)
 
 Initial release.
