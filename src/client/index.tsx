@@ -8,8 +8,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-tool/client'
 
-const SNAPSHOT_PATH = '/memory-vault/snapshot'
-const ACTION_PATH = '/memory-vault/action'
+const SNAPSHOT_PATH = '/mvault/snapshot'
+const ACTION_PATH = '/mvault/action'
 
 interface SnapshotMemory {
   id: string
@@ -101,7 +101,7 @@ async function mutate(token: string, action: Record<string, unknown>): Promise<u
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'x-memory-vault-token': token,
+      'x-mvault-token': token,
     },
     body: JSON.stringify(action),
   })
@@ -259,7 +259,7 @@ function ProfileTab(props: { snapshot: VaultSnapshot }) {
     {list('经验教训 Lessons', profile.lessons)}
     {list('关键决策 Decisions', profile.decisions)}
     {list('约束 Constraints', profile.constraints)}
-    <small style={{ display: 'block', padding: '6px 4px', opacity: 0.55 }}>对 AI 说「分析我的画像」或调用 vault_profile 可生成叙述性画像报告。</small>
+    <small style={{ display: 'block', padding: '6px 4px', opacity: 0.55 }}>对 AI 说「分析我的画像」或调用 mvault_profile 可生成叙述性画像报告。</small>
   </>
 }
 
@@ -285,6 +285,6 @@ export const inject = ['slots']
 /** Register the sidebar Memory Vault entry. */
 export async function apply(ctx: Context): Promise<void> {
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
-    name: 'sidebar.footer.action', id: 'memory-vault', order: 85, label: 'Memory Vault',
+    name: 'sidebar.footer.action', id: 'mvault', order: 85, label: 'Memory Vault',
   }, MemoryVaultPanel))
 }

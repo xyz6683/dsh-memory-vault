@@ -7,7 +7,7 @@
 # patch is applied automatically, so do NOT insert this row again in the
 # profile patch (duplicate ids crash the loader).
 - insert:
-    - id: memory-vault
+    - id: dsh-memory-vault
       name: dsh-memory-vault
       config:
         enabled: true
@@ -33,7 +33,7 @@
         domains: [dev, career, workflow, english, investment, general]
         defaultDomain: general
 
-        # Layered write gates: explicit `vault_add` writes land directly;
+        # Layered write gates: explicit `mvault_add` writes land directly;
         # automatic turn extraction (M2) lands in the confirmation queue.
         explicitWritesActive: true
         autoExtract: false
@@ -51,7 +51,7 @@
         toolResultMaxTokens: 500
         archiveRetentionDays: 30
 
-        # Personal-profile analysis (vault_profile). profileProvider/profileModel
+        # Personal-profile analysis (mvault_profile). profileProvider/profileModel
         # are optional; omitted = reuse the session's model route.
         profileMaxOutputTokens: 2400
         profileTimeoutMs: 60000

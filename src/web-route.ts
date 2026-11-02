@@ -14,8 +14,8 @@ import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:
 import type { MemoryVaultStore } from './store.ts'
 import type { MemoryKind, MemoryStatus, MemoryTrack } from './types.ts'
 
-export const SNAPSHOT_PATH = '/memory-vault/snapshot'
-export const ACTION_PATH = '/memory-vault/action'
+export const SNAPSHOT_PATH = '/mvault/snapshot'
+export const ACTION_PATH = '/mvault/action'
 
 const STATUS_VALUES = new Set<MemoryStatus>(['active', 'pending', 'archived', 'superseded'])
 const TRACK_VALUES = new Set<MemoryTrack>(['user', 'global', 'project', 'project-log', 'daily-log'])
@@ -114,7 +114,7 @@ export function snapshotHandler(store: MemoryVaultStore, settings: VaultRouteSet
       response.end('forbidden')
       return
     }
-    const url = new URL(request.url ?? SNAPSHOT_PATH, 'http://memory-vault.local')
+    const url = new URL(request.url ?? SNAPSHOT_PATH, 'http://mvault.local')
     const rawStatus = url.searchParams.get('status')?.slice(0, 20)
     const rawTrack = url.searchParams.get('track')?.slice(0, 20)
     const rawDomain = url.searchParams.get('domain')?.slice(0, 80)
@@ -178,7 +178,7 @@ export function actionHandler(store: MemoryVaultStore, settings: VaultRouteSetti
       return
     }
     if (!isTrustedVaultRequest(request, settings.trustedHosts)
-      || header(request.headers, 'x-memory-vault-token') !== settings.token
+      || header(request.headers, 'x-mvault-token') !== settings.token
       || !header(request.headers, 'content-type')?.toLocaleLowerCase('en-US').startsWith('application/json')) {
       response.writeHead(403)
       response.end('forbidden')

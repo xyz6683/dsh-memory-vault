@@ -14,11 +14,11 @@ Distill SOPs, best practices, and personal preferences across conversations; rec
 | Layered tracks | `user` (personal profile) · `global` (facts & SOPs) · `project` (project key facts, git-branch scoped) · `project-log` · `daily-log` |
 | Automatic recall | Before each first step, hybrid ranking (Chinese-friendly FTS5 trigram + knowledge-graph distance + importance + time decay + domain weighting) injects the most relevant memories into context, marked as reference data, under a hard token budget |
 | Domain dimension | First-class `domain` tags (defaults: dev / career / workflow / english / investment / general), used for recall weighting, Web filtering, and profile aggregation |
-| Write gates | Explicit `vault_add` writes land directly; automatic turn extraction files candidates into a **confirmation queue** — nothing becomes active memory without your approval; progress logs are written automatically but never auto-injected |
+| Write gates | Explicit `mvault_add` writes land directly; automatic turn extraction files candidates into a **confirmation queue** — nothing becomes active memory without your approval; progress logs are written automatically but never auto-injected |
 | Automatic extraction | Completed turns are archived locally and distilled by an LLM into structured candidates (audit trail kept); failures retry and never block your turn |
 | Knowledge graph | Entities / aliases / directed relations with conflict reporting; stable facts supersede and can be reverted; merge / rename / duplicate detection / orphan GC |
-| Personal profile | `vault_profile` aggregates preferences, SOP inventory, lessons, decisions, and constraints per domain, with an optional LLM narrative — the basis for development and strategy planning |
-| Portability | `vault_export` writes human-readable Markdown (`USER.md` / `MEMORY.md` / `projects/` / `daily/` / `domains/`); `vault_backup` exports/restores an exact JSONL snapshot |
+| Personal profile | `mvault_profile` aggregates preferences, SOP inventory, lessons, decisions, and constraints per domain, with an optional LLM narrative — the basis for development and strategy planning |
+| Portability | `mvault_export` writes human-readable Markdown (`USER.md` / `MEMORY.md` / `projects/` / `daily/` / `domains/`); `mvault_backup` exports/restores an exact JSONL snapshot |
 | Web UI | In-app "Memory Vault" panel: browse/search memories, approve/reject the confirmation queue, view the profile, one-click Markdown export |
 
 ## Requirements
@@ -43,9 +43,9 @@ Verify:
 dsh --profile web --dump-config | grep -A3 memory-vault
 ```
 
-Then, in a session, ask the agent: "哪些工具以 vault 开头？" — you should see `vault_add`, `vault_recall`, `vault_expand`, `vault_forget`, `vault_revert`, `vault_graph`, `vault_profile`, `vault_review`, `vault_export`, `vault_backup`, `vault_archive_*`, `vault_entity_*`.
+Then, in a session, ask the agent: "哪些工具以 vault 开头？" — you should see `mvault_add`, `mvault_recall`, `mvault_expand`, `mvault_forget`, `mvault_revert`, `mvault_graph`, `mvault_profile`, `mvault_review`, `mvault_export`, `mvault_backup`, `mvault_archive_*`, `mvault_entity_*`.
 
-**Cross-conversation check**: in session A say "记一下：这个项目的部署端口是 8080" — the agent calls `vault_add`. Open a new session B and ask "项目的部署端口是多少？" — the answer starts from the injected `<memory_vault_context>` recall block.
+**Cross-conversation check**: in session A say "记一下：这个项目的部署端口是 8080" — the agent calls `mvault_add`. Open a new session B and ask "项目的部署端口是多少？" — the answer starts from the injected `<memory_mvault_context>` recall block.
 
 ## Configuration
 
@@ -58,7 +58,7 @@ All defaults ship in [`cordis.patch.yml`](cordis.patch.yml). Key options:
 | `maxContextChars` / `maxContextTokens` | `2600` / `1300` | Hard budget of the injected recall block |
 | `domains` / `defaultDomain` | 6 domains | Domain dimension (editable) |
 | `weights` | six weights | Hybrid ranking mix |
-| `explicitWritesActive` | `true` | Explicit `vault_add` writes land directly |
+| `explicitWritesActive` | `true` | Explicit `mvault_add` writes land directly |
 | `autoExtract` | `false` | Turn on automatic extraction (candidates go to the confirmation queue; requires a working model route) |
 | `extractMinConfidence` | `0.65` | Minimum confidence for extraction candidates |
 | `profileProvider` / `profileModel` | — | Optional route for the narrative profile; omitted = reuse the session route |
@@ -77,7 +77,7 @@ All defaults ship in [`cordis.patch.yml`](cordis.patch.yml). Key options:
 - Single-writer: one writable database should be held by one DSH process (SQLite WAL + busy_timeout protects normal transactions; no distributed coordination).
 - Lexical recall matches wording (trigram overlap); cross-language semantic matching is not bundled — optional embeddings are on the roadmap.
 - `node:sqlite` may print an experimental-API warning on some Node versions.
-- Cross-device sync is not bundled; use `vault_export` / `vault_backup` + git for portability.
+- Cross-device sync is not bundled; use `mvault_export` / `mvault_backup` + git for portability.
 
 ## Development
 

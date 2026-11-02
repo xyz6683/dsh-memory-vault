@@ -206,7 +206,7 @@ describe('automatic extraction end to end', () => {
     const deadline = Date.now() + 8000
     let pending: ReviewValue = { ok: true, suggestions: [] }
     while (Date.now() < deadline) {
-      const listed = await call(ctx, 'vault_review', { action: 'list' })
+      const listed = await call(ctx, 'mvault_review', { action: 'list' })
       pending = listed.value as unknown as ReviewValue
       if (pending.suggestions.length > 0) break
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -216,11 +216,11 @@ describe('automatic extraction end to end', () => {
     assert.ok(pending.suggestions[0]!.content.includes('先给结论'))
 
     // Approve through the tool; the memory must become recallable.
-    const approved = await call(ctx, 'vault_review', { action: 'approve', suggestionId: pending.suggestions[0]!.id })
+    const approved = await call(ctx, 'mvault_review', { action: 'approve', suggestionId: pending.suggestions[0]!.id })
     const approvedValue = approved.value as unknown as { ok: boolean; memoryId?: string }
     assert.equal(approvedValue.ok, true)
     assert.ok(approvedValue.memoryId !== undefined)
-    const recalled = await call(ctx, 'vault_recall', { query: '先给结论' })
+    const recalled = await call(ctx, 'mvault_recall', { query: '先给结论' })
     const recallData = recalled.value as unknown as RecallValue
     assert.ok(recallData.results.some(result => result.id === approvedValue.memoryId))
 

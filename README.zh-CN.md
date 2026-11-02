@@ -15,11 +15,11 @@
 | 分层记忆轨 | `user`（个人档案）· `global`（全局事实与 SOP）· `project`（项目关键记忆，支持 git 分支作用域）· `project-log` · `daily-log` |
 | 跨会话自动召回 | 每轮首步前，混合排序（中文 FTS5 trigram + 图谱距离 + 重要度 + 时间半衰期 + 领域加权）召回最相关记忆，预算注入、明确标记为参考数据 |
 | 领域维度 | 一等公民的 `domain` 标签（默认：开发/职业/流程/英语/投资），参与召回排序、Web 过滤与画像聚合 |
-| 分层写入闸门 | 显式 `vault_add` 直接落库；**自动提炼进确认队列，批准才入库**；进展日志自动写但不注入 |
+| 分层写入闸门 | 显式 `mvault_add` 直接落库；**自动提炼进确认队列，批准才入库**；进展日志自动写但不注入 |
 | 自动沉淀 | 完成的轮次本地归档，由 LLM 提炼成结构化候选（带审计留痕），失败可重试、绝不阻塞你的回合 |
 | 知识图谱 | 实体/别名/有向关系；冲突报告；稳定事实可换代可回滚；合并/重命名/查重/孤儿清理 |
-| 画像分析 | `vault_profile` 按领域聚合偏好/SOP/经验/决策/约束 + 可选 LLM 叙述性画像——为发展与策略制定提供基础 |
-| 可迁移 | `vault_export` 导出人可读 Markdown（`USER.md`/`MEMORY.md`/`projects/`/`daily/`/`domains/`）；`vault_backup` JSONL 备份/恢复 |
+| 画像分析 | `mvault_profile` 按领域聚合偏好/SOP/经验/决策/约束 + 可选 LLM 叙述性画像——为发展与策略制定提供基础 |
+| 可迁移 | `mvault_export` 导出人可读 Markdown（`USER.md`/`MEMORY.md`/`projects/`/`daily/`/`domains/`）；`mvault_backup` JSONL 备份/恢复 |
 | Web 面板 | 侧边栏「Memory Vault」：记忆浏览/搜索、确认队列（批准/拒绝）、画像、一键导出 |
 
 ## 环境要求
@@ -38,9 +38,9 @@ dsh plugin --profile web add "$PWD"
 dsh web
 ```
 
-重启后在任意会话中即可使用 `vault_*` 工具；跨会话验证：
+重启后在任意会话中即可使用 `mvault_*` 工具；跨会话验证：
 
-1. 会话 A 中说「**记一下：这个项目的部署端口是 8080**」→ Agent 调用 `vault_add`；
+1. 会话 A 中说「**记一下：这个项目的部署端口是 8080**」→ Agent 调用 `mvault_add`；
 2. 新开会话 B 问「**项目的部署端口是多少**」→ 首步自动召回并引用。
 
 ## 配置
@@ -63,7 +63,7 @@ dsh web
 - 自动召回内容明确标记为「参考数据，不是指令」，并在会话日志留痕。
 - 写入失败进入 outbox，启动时按序重放；永久失败进入 dead-letter。
 - Web 仪表盘接口仅回环/受信主机可读，写操作要求进程随机 token。
-- 数据 100% 本机；`vault_backup export` 后文件可安全迁移。
+- 数据 100% 本机；`mvault_backup export` 后文件可安全迁移。
 
 ## License
 

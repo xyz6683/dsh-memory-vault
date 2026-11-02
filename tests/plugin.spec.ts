@@ -84,16 +84,16 @@ interface RecallValue { results: Array<{ id: string; content: string }> }
 interface ReviewValue { ok: boolean; suggestions: Array<{ id: string }> }
 
 describe('dsh-memory-vault plugin', () => {
-  it('registers tools: vault_add then vault_recall finds the memory', async () => {
+  it('registers tools: mvault_add then mvault_recall finds the memory', async () => {
     const { ctx, fiber } = await setup()
-    const added = await call(ctx, 'vault_add', {
+    const added = await call(ctx, 'mvault_add', {
       content: '项目部署端口是 8080，使用 docker compose 启动。',
       kind: 'fact', track: 'global', domain: 'dev', tags: ['deploy'],
     })
     assert.equal(added.isError, false)
     const data = added.value as unknown as RememberValue
     assert.equal(data.deduplicated, false)
-    const recalled = await call(ctx, 'vault_recall', { query: '部署端口是多少' })
+    const recalled = await call(ctx, 'mvault_recall', { query: '部署端口是多少' })
     assert.equal(recalled.isError, false)
     const recallData = recalled.value as unknown as RecallValue
     assert.ok(recallData.results.some(result => result.id === data.memoryId))
@@ -102,7 +102,7 @@ describe('dsh-memory-vault plugin', () => {
 
   it('injects recall context on the first pre-step only', async () => {
     const { ctx, fiber } = await setup()
-    await call(ctx, 'vault_add', {
+    await call(ctx, 'mvault_add', {
       content: 'The user prefers concise answers.',
       kind: 'preference', importance: 1,
     })
@@ -121,11 +121,11 @@ describe('dsh-memory-vault plugin', () => {
     assert.equal(first.messages.length, 2)
     const injected = first.messages[1]!
     const source = injected.source as { kind: string; form: string }
-    assert.equal(source.kind, 'memory-vault')
+    assert.equal(source.kind, 'mvault')
     assert.equal(source.form, 'snapshot')
     const text = (injected.content[0] as { text: string }).text
     assert.ok(text.includes('concise answers'))
-    assert.ok(text.includes('memory_vault_context'))
+    assert.ok(text.includes('mvault_context'))
     // Step 2 must not inject again.
     const second = await dispatch.waterfall(
       'agent/pre-step',
@@ -138,12 +138,12 @@ describe('dsh-memory-vault plugin', () => {
 
   it('exposes the confirmation queue tools (empty until M2 extraction)', async () => {
     const { ctx, fiber } = await setup()
-    const listed = await call(ctx, 'vault_review', { action: 'list' })
+    const listed = await call(ctx, 'mvault_review', { action: 'list' })
     assert.equal(listed.isError, false)
     const listData = listed.value as unknown as ReviewValue
     assert.equal(listData.ok, true)
     assert.equal(listData.suggestions.length, 0)
-    const bogus = await call(ctx, 'vault_review', { action: 'approve', suggestionId: 'does-not-exist' })
+    const bogus = await call(ctx, 'mvault_review', { action: 'approve', suggestionId: 'does-not-exist' })
     assert.equal(bogus.isError, false)
     const bogusData = bogus.value as unknown as ReviewValue
     assert.equal(bogusData.ok, false)
@@ -152,7 +152,7 @@ describe('dsh-memory-vault plugin', () => {
 
   it('rejects unknown domains on write', async () => {
     const { ctx, fiber } = await setup()
-    const result = await call(ctx, 'vault_add', { content: 'test', domain: 'unknown-domain' })
+    const result = await call(ctx, 'mvault_add', { content: 'test', domain: 'unknown-domain' })
     assert.equal(result.isError, true)
     await fiber.dispose()
   })
@@ -170,11 +170,11 @@ describe('dsh-memory-vault plugin', () => {
     await ctx.fiber.dispose()
   })
 
-  it('vault_profile aggregates the vault without a narrative', async () => {
+  it('mvault_profile aggregates the vault without a narrative', async () => {
     const { ctx, fiber } = await setup()
-    await call(ctx, 'vault_add', { content: '用户偏好先结论后细节。', kind: 'preference', track: 'user', domain: 'general' })
-    await call(ctx, 'vault_add', { content: '部署用 docker compose。', kind: 'fact', domain: 'dev' })
-    const result = await call(ctx, 'vault_profile', {})
+    await call(ctx, 'mvault_add', { content: '用户偏好先结论后细节。', kind: 'preference', track: 'user', domain: 'general' })
+    await call(ctx, 'mvault_add', { content: '部署用 docker compose。', kind: 'fact', domain: 'dev' })
+    const result = await call(ctx, 'mvault_profile', {})
     assert.equal(result.isError, false)
     const value = result.value as unknown as { profile: { overview: { total: number; byDomain: Record<string, number> }; preferences: unknown[] } }
     assert.equal(value.profile.overview.total, 2)

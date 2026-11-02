@@ -18,13 +18,13 @@ dsh web
 
 > 你有哪些记忆工具？列一下 vault 开头的工具名。
 
-预期：Agent 列出 `vault_add / vault_recall / vault_expand / vault_forget / vault_revert / vault_graph / vault_profile / vault_review / vault_export / vault_backup / vault_archive_* / vault_entity_*` 等工具。
+预期：Agent 列出 `mvault_add / mvault_recall / mvault_expand / mvault_forget / mvault_revert / mvault_graph / mvault_profile / mvault_review / mvault_export / mvault_backup / mvault_archive_* / mvault_entity_*` 等工具。
 
 ## 步骤 2：会话 A 沉淀记忆
 
 > 记一下：这个项目的部署端口是 8080，用 docker compose 启动。领域是开发。
 
-预期：Agent 调用 `vault_add`，回复类似 `Stored memory <uuid> …`。
+预期：Agent 调用 `mvault_add`，回复类似 `Stored memory <uuid> …`。
 
 再沉淀一条带 SOP 的：
 
@@ -38,7 +38,7 @@ dsh web
 
 > 这个项目的部署端口是多少？
 
-预期：回复**开头**出现 `<memory_vault_context>` 召回块（可折叠），内容含 8080，Agent 据此回答。
+预期：回复**开头**出现 `<memory_mvault_context>` 召回块（可折叠），内容含 8080，Agent 据此回答。
 
 再问：
 
@@ -50,13 +50,13 @@ dsh web
 
 > 把记忆导出成 Markdown 文件。
 
-预期：`vault_export` 返回文件清单；`~/.dsh/dsh-memory-vault-export/` 下可见 `MEMORY.md`、`domains/dev.md`、`domains/workflow.md` 等，可直接打开查看。
+预期：`mvault_export` 返回文件清单；`~/.dsh/dsh-memory-vault-export/` 下可见 `MEMORY.md`、`domains/dev.md`、`domains/workflow.md` 等，可直接打开查看。
 
 ## 步骤 5：验证确认队列工具面（此时应为空）
 
 > 查看待确认的记忆建议。
 
-预期：`vault_review {action: list}` 返回空列表（需开启 `autoExtract: true` 后才有自动提炼候选）。
+预期：`mvault_review {action: list}` 返回空列表（需开启 `autoExtract: true` 后才有自动提炼候选）。
 
 ## 步骤 6：验证 Web 面板与画像
 
@@ -65,7 +65,7 @@ dsh web
    - 「待确认」Tab：空（autoExtract 默认关）；
    - 「画像」Tab：各领域计数 + 偏好/SOP 清单；
    - 「导出」Tab：点导出，`~/.dsh/dsh-memory-vault-export/` 出现 Markdown 文件。
-2. 对 AI 说「**分析我的画像**」→ 预期调用 `vault_profile`，返回结构化聚合（含偏好与 SOP 清单）。
+2. 对 AI 说「**分析我的画像**」→ 预期调用 `mvault_profile`，返回结构化聚合（含偏好与 SOP 清单）。
 
 ## 回归注意
 
@@ -78,4 +78,4 @@ dsh web
 - [ ] 会话 A 两条记忆落库
 - [ ] 会话 B 两个问题均自动召回并正确回答
 - [ ] 导出文件存在且可读
-- [ ] `vault_review list` 正常返回空
+- [ ] `mvault_review list` 正常返回空

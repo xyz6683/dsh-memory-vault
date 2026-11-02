@@ -6,7 +6,7 @@
 // as current-state context that supersedes earlier snapshots from us.
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
-    'memory-vault': { kind: 'memory-vault' } & import('@deepseek-ai/dsh-llm').ContextFormed
+    'mvault': { kind: 'mvault' } & import('@deepseek-ai/dsh-llm').ContextFormed
   }
 }
 

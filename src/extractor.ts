@@ -491,7 +491,7 @@ export class AutoExtractor {
     })
     const messages: Message[] = [createUserMessage({
       content: [{ type: 'text', text: `Extract durable memory from this JSON conversation data:\n${framed}` }],
-      source: { kind: 'memory-vault' },
+      source: { kind: 'mvault' },
     })]
     const timeout = AbortSignal.timeout(this.policy.timeoutMs)
     const signal = AbortSignal.any([this.lifecycle.signal, timeout])
