@@ -75,7 +75,33 @@ dsh web
 
 ## 验收标准
 
-- [ ] 会话 A 两条记忆落库
-- [ ] 会话 B 两个问题均自动召回并正确回答
-- [ ] 导出文件存在且可读
-- [ ] `mvault_review list` 正常返回空
+- [x] 会话 A 两条记忆落库
+- [x] 会话 B 两个问题均自动召回并正确回答
+- [x] 导出文件存在且可读
+- [x] `mvault_review list` 正常返回空
+
+---
+
+## 实测结果（2026-11-02，用户确认通过 ✅）
+
+**加载证据**：重启 dsh web 后，`/mvault/snapshot` 由 404 变为 200（路由上线）。
+
+**现场快照**（通过同源 API 直读生产数据库）：
+
+```
+stats: {"total":2,"active":2,"pending":0,"archived":0,
+        "byDomain":{"dev":1,"workflow":1},"byTrack":{"project":2}}
+memories:
+ - sop   / project / workflow | 发版 SOP：跑测试 → 打 tag → 推送远端。
+ - fact  / project / dev      | 项目 dsh-memory 的部署端口是 8080，通过 docker compose 启动。
+pending suggestions: 0
+profile domains: {"dev":1,"workflow":1}
+```
+
+**结论**：
+1. 会话 A 的两条测试记忆（SOP + 部署端口）正确落库，`kind/domain/track` 全部按预期归类；
+2. 会话 B 的自动召回经用户确认正常（正是这两条记忆支撑了回答）；
+3. 领域聚合与画像数据面工作正常；
+4. 确认队列为空符合预期（autoExtract 默认关闭）。
+
+**回归提示**：本清单步骤 1 中的工具名已是 `mvault_*`（发布前审查重命名后）。
