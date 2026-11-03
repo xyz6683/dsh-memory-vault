@@ -170,6 +170,37 @@ describe('dsh-memory-vault plugin', () => {
     await ctx.fiber.dispose()
   })
 
+  it('mvault_propose files a suggestion; approval makes it recallable', async () => {
+    const { ctx, fiber } = await setup()
+    // Agent-initiated proposal must NOT become active memory.
+    const proposed = await call(ctx, 'mvault_propose', {
+      content: '用户偏好用 443 端口推 GitHub。', kind: 'fact', domain: 'dev',
+      reason: '本次排障验证的持久结论',
+    })
+    assert.equal(proposed.isError, false)
+    const proposalValue = proposed.value as unknown as { suggestionId: string; duplicate: boolean }
+    assert.equal(proposalValue.duplicate, false)
+    assert.ok(proposalValue.suggestionId.length > 0)
+    // Not recallable yet (queue only).
+    const before = await call(ctx, 'mvault_recall', { query: '443 端口' })
+    const beforeData = before.value as unknown as { results: unknown[] }
+    assert.equal(beforeData.results.length, 0)
+    // User approves via mvault_review.
+    const approved = await call(ctx, 'mvault_review', { action: 'approve', suggestionId: proposalValue.suggestionId })
+    const approvedValue = approved.value as unknown as { ok: boolean; memoryId?: string }
+    assert.equal(approvedValue.ok, true)
+    assert.ok(approvedValue.memoryId !== undefined)
+    // Now recallable.
+    const after = await call(ctx, 'mvault_recall', { query: '443 端口' })
+    const afterData = after.value as unknown as { results: Array<{ id: string }> }
+    assert.ok(afterData.results.some(result => result.id === approvedValue.memoryId))
+    // Duplicate proposal is rejected.
+    const again = await call(ctx, 'mvault_propose', { content: '用户偏好用 443 端口推 GitHub。' })
+    const againValue = again.value as unknown as { duplicate: boolean }
+    assert.equal(againValue.duplicate, true)
+    await fiber.dispose()
+  })
+
   it('mvault_profile aggregates the vault without a narrative', async () => {
     const { ctx, fiber } = await setup()
     await call(ctx, 'mvault_add', { content: '用户偏好先结论后细节。', kind: 'preference', track: 'user', domain: 'general' })

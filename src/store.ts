@@ -1018,6 +1018,21 @@ export class MemoryVaultStore {
     return Number(row.count)
   }
 
+  /**
+   * File one agent-proposed candidate into the confirmation queue, deduplicated
+   * against active memories and pending suggestions (normalized content).
+   */
+  proposeSuggestion(input: Omit<Suggestion, 'id' | 'status' | 'memoryId' | 'createdAt'> & { createdAt: number }): { id: string } | { duplicate: boolean } {
+    this.assertOpen()
+    const key = compactEntityIdentity(input.content)
+    const activeKeys = new Set((this.db.prepare("SELECT content FROM memories WHERE status = 'active'").all() as Array<{ content: string }>)
+      .map(row => compactEntityIdentity(row.content)))
+    const pendingKeys = new Set((this.db.prepare("SELECT content FROM suggestions WHERE status = 'pending'").all() as Array<{ content: string }>)
+      .map(row => compactEntityIdentity(row.content)))
+    if (activeKeys.has(key) || pendingKeys.has(key)) return { duplicate: true }
+    return this.addSuggestion(input)
+  }
+
   /** Add one confirmation-gated suggestion. */
   addSuggestion(input: Omit<Suggestion, 'id' | 'status' | 'memoryId' | 'createdAt'> & { createdAt: number }): { id: string } {
     this.assertOpen()

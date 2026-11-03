@@ -424,7 +424,7 @@ export function apply(ctx: Context, config: Config): void {
   // mvault_add — explicit, user-directed writes land directly (layered gate ①).
   ctx.tools.register(defineTool({
     name: 'mvault_add',
-    description: 'Store durable long-term memory that will matter in future conversations. Use when the user asks to remember something, shares a preference, decision, SOP workflow, or a hard-won lesson. Do not store secrets or transient chatter.',
+    description: 'Store durable long-term memory IMMEDIATELY. Call ONLY when the user explicitly asked you to remember/store something (e.g. 记一下/记住/以后都这样). If the user did not ask but you judge the work worth remembering, use mvault_propose instead so the user approves first. Do not store secrets or transient chatter.',
     parameters: {
       content: { type: 'string', required: true, description: 'Self-contained memory text. Write it so it is understandable without the current conversation.' },
       kind: { type: 'string', description: 'preference, fact, decision, constraint, lesson, sop, event, or summary. Defaults to fact. Use "sop" for step-by-step workflows and attach steps.' },
@@ -522,6 +522,100 @@ export function apply(ctx: Context, config: Config): void {
       })
     },
     presentCall: args => ({ card: 'generic', title: 'Vault add', kind: 'other', rawInput: args.content.length > 80 ? `${args.content.slice(0, 80)}…` : args.content }),
+  }))
+
+  // mvault_propose — agent-initiated suggestions enter the confirmation queue
+  // (layered gate ②): the user approves before anything becomes active.
+  ctx.tools.register(defineTool({
+    name: 'mvault_propose',
+    description: 'Propose a durable memory for the user\'s approval. Use when the user did NOT explicitly ask to remember, but you judge the current task/work has long-term value (a confirmed preference, decision, reusable lesson, SOP, or important fact). The suggestion lands in the confirmation queue; nothing becomes active memory until the user approves via the Memory Vault panel or mvault_review. Do not propose secrets or transient chatter.',
+    parameters: {
+      content: { type: 'string', required: true, description: 'Self-contained memory text, understandable without the current conversation.' },
+      kind: { type: 'string', description: 'preference, fact, decision, constraint, lesson, sop, event, or summary. Defaults to fact. Use "sop" for step-by-step workflows and attach steps.' },
+      track: { type: 'string', description: 'user (personal profile/preferences), global (facts and SOPs), project (project key facts), project-log, daily-log. Defaults to global.' },
+      domain: { type: 'string', description: 'Life domain. Must be one of the configured domains; defaults to the configured defaultDomain.' },
+      importance: { type: 'number', description: 'Long-term importance from 0 to 1. Defaults to 0.5.' },
+      confidence: { type: 'number', description: 'Confidence from 0 to 1. Defaults to 0.7.' },
+      stableKey: { type: 'string', description: 'Stable identity for a fact that should supersede an older value.' },
+      project: { type: 'string', description: 'Project key for project/project-log tracks. Defaults to a hash of the current working directory.' },
+      branches: { type: 'array', items: { type: 'string' }, description: 'Git branch scopes for project memories. Omit = all branches.' },
+      steps: { type: 'array', items: { type: 'string' }, description: 'Ordered workflow steps for kind=sop.' },
+      tags: { type: 'array', items: { type: 'string' }, description: 'Short retrieval labels.' },
+      entities: {
+        type: 'array',
+        description: 'Entities mentioned by the memory.',
+        items: {
+          type: 'object', additionalProperties: false,
+          properties: {
+            name: { type: 'string', required: true },
+            kind: { type: 'string' },
+            canonical: { type: 'string' },
+            aliases: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      },
+      relations: {
+        type: 'array',
+        description: 'Directed knowledge-graph edges supported by this memory.',
+        items: {
+          type: 'object', additionalProperties: false,
+          properties: {
+            source: { type: 'string', required: true },
+            predicate: { type: 'string', required: true },
+            target: { type: 'string', required: true },
+            confidence: { type: 'number' },
+          },
+        },
+      },
+      reason: { type: 'string', description: 'One line explaining why this is worth remembering.' },
+    },
+    output: {
+      schema: {
+        type: 'object', additionalProperties: false,
+        properties: {
+          suggestionId: { type: 'string', required: true },
+          duplicate: { type: 'boolean', required: true },
+          message: { type: 'string', required: true },
+        },
+      },
+      render: (_args, value) => [{
+        type: 'text',
+        text: value.message,
+      }],
+    },
+    async execute(args, exec) {
+      exec.signal.throwIfAborted()
+      const track = memoryTrack(args.track)
+      const cwd = exec.agent?.session?.header?.cwd
+      const project = args.project === undefined
+        ? (track === 'project' || track === 'project-log') && cwd !== undefined ? projectKeyForCwd(cwd) : undefined
+        : nonEmpty(args.project, 'project', 200)
+      const domain = resolveDomain(args.domain, config.defaultDomain)
+      const content = nonEmpty(args.content, 'content', 12_000)
+      const result = store.proposeSuggestion({
+        content,
+        kind: memoryKind(args.kind),
+        track,
+        domain,
+        ...(project === undefined ? {} : { project }),
+        importance: optionalUnit(args.importance, 'importance', 0.5),
+        confidence: optionalUnit(args.confidence, 'confidence', 0.7),
+        ...(args.stableKey === undefined ? {} : { stableKey: nonEmpty(args.stableKey, 'stableKey', 160) }),
+        ...(args.branches === undefined ? {} : { branches: branchesOf(args.branches) }),
+        ...(args.steps === undefined ? {} : { steps: stepsOf(args.steps) }),
+        tags: tagsOf(args.tags),
+        entities: entitiesOf(args.entities),
+        relations: relationsOf(args.relations),
+        ...(args.reason === undefined ? {} : { reason: nonEmpty(args.reason, 'reason', 300) }),
+        ...(exec.agent === undefined ? {} : { sourceSession: String(exec.agent.id) }),
+        createdAt: Date.now(),
+      })
+      if ('duplicate' in result) {
+        return { suggestionId: '', duplicate: true, message: '已有相同内容的活动记忆或待确认建议，未重复提交。' }
+      }
+      return { suggestionId: result.id, duplicate: false, message: `已提交记忆建议 ${result.id}，等待用户批准后生效。` }
+    },
+    presentCall: args => ({ card: 'generic', title: 'Vault propose', kind: 'other', rawInput: args.content.length > 80 ? `${args.content.slice(0, 80)}…` : args.content }),
   }))
 
   // mvault_recall — manual hybrid retrieval.
