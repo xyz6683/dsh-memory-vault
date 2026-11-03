@@ -17,6 +17,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 GITHUB_URL="ssh://git@ssh.github.com:443/xyz6683/dsh-memory-vault.git"
+GITEE_URL="git@gitee.com:xyz6683/dsh-memory-vault.git"
 
 echo "== 1/5 检查工作区状态"
 if ! git diff --quiet || ! git diff --cached --quiet; then
@@ -44,25 +45,39 @@ if ! git config core.sshCommand >/dev/null 2>&1; then
   echo "   core.sshCommand 已配置（known_hosts 走 /tmp）"
 fi
 
-echo "== 4/5 推送 main 分支与 tag"
-git push github main
-git push github v0.1.0 || true   # 已有同名 tag 时跳过
-
-echo "== 5/5 验证同步"
-REMOTE_HEAD="$(git ls-remote github main | cut -f1)"
-LOCAL_HEAD="$(git rev-parse HEAD)"
-if [ "$REMOTE_HEAD" = "$LOCAL_HEAD" ]; then
-  echo "   ✅ github/main == 本地 HEAD"
+echo "== 4/6 配置 gitee 远端（双推备份，按 SOP 走 22 端口）"
+if git remote get-url gitee >/dev/null 2>&1; then
+  CURRENT="$(git remote get-url gitee)"
+  if [ "$CURRENT" != "$GITEE_URL" ]; then
+    git remote set-url gitee "$GITEE_URL"
+    echo "   gitee 远端已更新: $GITEE_URL"
+  else
+    echo "   gitee 远端已就绪: $CURRENT"
+  fi
 else
-  echo "   !! 不一致：远端 $REMOTE_HEAD 本地 $LOCAL_HEAD"
-  exit 1
+  git remote add gitee "$GITEE_URL"
+  echo "   gitee 远端已添加: $GITEE_URL"
 fi
 
+echo "== 5/6 双推 main 分支与 tag"
+git push github main
+git push gitee main
+git push github v0.1.0 || true   # 已有同名 tag 时跳过
+git push gitee v0.1.0 || true
+
+echo "== 6/6 验证双端同步（SOP 第 5 步）"
+LOCAL_HEAD="$(git rev-parse HEAD)"
+for remote in github gitee; do
+  REMOTE_HEAD="$(git ls-remote "$remote" main | cut -f1)"
+  if [ "$REMOTE_HEAD" = "$LOCAL_HEAD" ]; then
+    echo "   ✅ $remote/main == 本地 HEAD"
+  else
+    echo "   !! 不一致：$remote $REMOTE_HEAD 本地 $LOCAL_HEAD"
+    exit 1
+  fi
+done
+
 echo
-echo "✅ GitHub 推送完成。剩余两步（Web 界面操作）："
-echo "  1. 仓库 About → Topics 添加 dsh-plugin（dshplugin.store 自动收录）"
+echo "✅ GitHub + Gitee 双推完成。剩余两步（Web 界面操作）："
+echo "  1. GitHub 仓库 About → Topics 添加 dsh-plugin（dshplugin.store 自动收录）"
 echo "  2. https://dshplugins.com/submit 提交人工审核"
-echo
-echo "可选：配置 Gitee 镜像远端（双推备份）："
-echo "  git remote add gitee git@gitee.com:<你的gitee用户名>/dsh-memory-vault.git"
-echo "  git push gitee main && git push gitee v0.1.0"
