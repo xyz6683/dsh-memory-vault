@@ -11,13 +11,13 @@
     "sqlite",
     "sop"
   ],
-  "homepage": "https://github.com/yanggao/dsh-memory-vault#readme",
+  "homepage": "https://github.com/xyz6683/dsh-memory-vault#readme",
   "bugs": {
-    "url": "https://github.com/yanggao/dsh-memory-vault/issues"
+    "url": "https://github.com/xyz6683/dsh-memory-vault/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yanggao/dsh-memory-vault.git"
+    "url": "git+https://github.com/xyz6683/dsh-memory-vault.git"
   },
   "type": "module",
   "main": "lib/index.js",
